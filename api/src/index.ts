@@ -33,7 +33,7 @@ app.use(cors({
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limite de 100 requêtes par fenêtre
+  max: 1000, // limite de 1000 requêtes par fenêtre (augmenté pour les tests)
   message: {
     success: false,
     error: 'Trop de requêtes, veuillez réessayer plus tard',
