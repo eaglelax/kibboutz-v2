@@ -30,7 +30,21 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      "expo-asset"
-    ]
+      "expo-asset",
+      ["expo-build-properties", {
+        "android": {
+          "kotlinVersion": "1.9.25"
+        }
+      }]
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "6719de45-ba5f-4799-b1a8-e5c47d33a21f"
+      }
+    },
+    "owner": "axelnig"
   }
 }
