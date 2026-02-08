@@ -19,12 +19,14 @@ const PORT = process.env.PORT || 3001;
 // Middlewares de sécurité
 app.use(helmet());
 app.use(cors({
-  origin: [
-    process.env.FRONTEND_URL || 'http://localhost:3000',
-    'http://localhost:8081',
-    'http://localhost:8082',
-    'http://localhost:19006',
-  ],
+  origin: process.env.NODE_ENV === 'production'
+    ? true // Accepter toutes les origines en production (app mobile n'a pas d'origin)
+    : [
+        process.env.FRONTEND_URL || 'http://localhost:3000',
+        'http://localhost:8081',
+        'http://localhost:8082',
+        'http://localhost:19006',
+      ],
   credentials: true,
 }));
 

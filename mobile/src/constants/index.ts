@@ -1,11 +1,13 @@
 import { Platform } from 'react-native';
 
-// Web utilise localhost, Android emulator utilise 10.0.2.2, iOS utilise localhost
+// API en ligne (Render) pour les tests mobile
+// Pour revenir en local, decommenter les lignes ci-dessous
 const getApiUrl = () => {
   if (process.env.EXPO_PUBLIC_API_URL) return process.env.EXPO_PUBLIC_API_URL;
-  if (Platform.OS === 'web') return 'http://localhost:3001/api';
-  if (Platform.OS === 'android') return 'http://10.0.2.2:3001/api';
-  return 'http://localhost:3001/api';
+  return 'https://kibboutz-v2.onrender.com/api';
+  // if (Platform.OS === 'web') return 'http://localhost:3001/api';
+  // if (Platform.OS === 'android') return 'http://10.0.2.2:3001/api';
+  // return 'http://localhost:3001/api';
 };
 
 export const API_URL = getApiUrl();
