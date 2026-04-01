@@ -8,37 +8,45 @@ import { getPaginationParams, getTotalPages } from '../utils';
 import type { Product } from '../db/schema';
 
 // Helper: enrichir les produits avec images, catégorie, producteur
-async function enrichProducts(productRows: Product[], opts?: { includeProducerProfile?: boolean }) {
+// opts.showProducer: false par défaut (masqué côté client, visible pour admin/producteur)
+async function enrichProducts(productRows: Product[], opts?: { includeProducerProfile?: boolean; showProducer?: boolean }) {
   if (productRows.length === 0) return [];
 
   const productIds = productRows.map(p => p.id);
   const categoryIds = [...new Set(productRows.map(p => p.categoryId))];
   const producerIds = [...new Set(productRows.map(p => p.producerId))];
 
-  const [imageList, categoryList, producerList] = await Promise.all([
+  const [imageList, categoryList] = await Promise.all([
     db.select().from(productImages).where(inArray(productImages.productId, productIds)),
     db.select().from(categories).where(inArray(categories.id, categoryIds)),
-    db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName })
-      .from(users).where(inArray(users.id, producerIds)),
   ]);
 
-  let profileMap = new Map<string, any>();
-  if (opts?.includeProducerProfile) {
-    const profiles = await db.select().from(producerProfiles)
-      .where(inArray(producerProfiles.userId, producerIds));
-    profileMap = new Map(profiles.map(p => [p.userId, p]));
-  }
-
   const categoryMap = new Map(categoryList.map(c => [c.id, c]));
-  const producerMap = new Map(producerList.map(p => [p.id, p]));
+
+  // Ne charger les infos producteur que si demandé (admin, producteur lui-même)
+  let producerMap = new Map<string, any>();
+  let profileMap = new Map<string, any>();
+  if (opts?.showProducer) {
+    const producerList = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName })
+      .from(users).where(inArray(users.id, producerIds));
+    producerMap = new Map(producerList.map(p => [p.id, p]));
+
+    if (opts?.includeProducerProfile) {
+      const profiles = await db.select().from(producerProfiles)
+        .where(inArray(producerProfiles.userId, producerIds));
+      profileMap = new Map(profiles.map(p => [p.userId, p]));
+    }
+  }
 
   return productRows.map(p => ({
     ...p,
     images: imageList.filter(i => i.productId === p.id),
     category: categoryMap.get(p.categoryId) || null,
-    producer: opts?.includeProducerProfile
-      ? { ...(producerMap.get(p.producerId) || {}), profile: profileMap.get(p.producerId) || null }
-      : producerMap.get(p.producerId) || null,
+    producer: opts?.showProducer
+      ? (opts?.includeProducerProfile
+        ? { ...(producerMap.get(p.producerId) || {}), profile: profileMap.get(p.producerId) || null }
+        : producerMap.get(p.producerId) || null)
+      : null, // Masqué pour les clients
   }));
 }
 
@@ -90,7 +98,9 @@ export const getProducts = async (req: AuthRequest, res: Response): Promise<void
       .limit(limit)
       .offset(offset);
 
-    const enriched = await enrichProducts(productList);
+    // Les clients ne voient pas les infos producteur
+    const isAdmin = req.user?.role === 'ADMIN';
+    const enriched = await enrichProducts(productList, { showProducer: isAdmin });
 
     res.json({
       success: true,
@@ -127,7 +137,11 @@ export const getProduct = async (req: AuthRequest, res: Response): Promise<void>
       return;
     }
 
-    const [enriched] = await enrichProducts([product], { includeProducerProfile: true });
+    // Masquer le producteur pour les clients
+    const isAdmin = req.user?.role === 'ADMIN';
+    const isOwner = req.user?.id === product.producerId;
+    const showProducer = isAdmin || isOwner;
+    const [enriched] = await enrichProducts([product], { includeProducerProfile: showProducer, showProducer });
 
     res.json({
       success: true,
@@ -168,7 +182,7 @@ export const createProduct = async (req: AuthRequest, res: Response): Promise<vo
 
     const [product] = await db.select().from(products)
       .where(eq(products.id, newProductId));
-    const [enriched] = await enrichProducts([product]);
+    const [enriched] = await enrichProducts([product], { showProducer: true });
 
     res.status(201).json({
       success: true,
@@ -234,7 +248,7 @@ export const updateProduct = async (req: AuthRequest, res: Response): Promise<vo
 
     const [updatedProduct] = await db.select().from(products)
       .where(eq(products.id, id));
-    const [enriched] = await enrichProducts([updatedProduct]);
+    const [enriched] = await enrichProducts([updatedProduct], { showProducer: true });
 
     res.json({
       success: true,
@@ -320,7 +334,7 @@ export const getMyProducts = async (req: AuthRequest, res: Response): Promise<vo
       .limit(limit)
       .offset(offset);
 
-    const enriched = await enrichProducts(myProducts);
+    const enriched = await enrichProducts(myProducts, { showProducer: true });
 
     res.json({
       success: true,

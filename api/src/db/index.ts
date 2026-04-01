@@ -2,6 +2,8 @@ import { drizzle } from 'drizzle-orm/mysql2';
 import mysql from 'mysql2/promise';
 import * as schema from './schema';
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 const poolConnection = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
   port: Number(process.env.DB_PORT) || 3306,
@@ -11,6 +13,8 @@ const poolConnection = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
+  // TiDB Cloud requiert SSL en production
+  ...(isProduction ? { ssl: { rejectUnauthorized: true } } : {}),
 });
 
 export const db = drizzle(poolConnection, { schema, mode: 'default' });

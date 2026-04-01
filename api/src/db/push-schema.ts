@@ -4,6 +4,7 @@ dotenv.config();
 import mysql from 'mysql2/promise';
 
 const run = async () => {
+  const isCloud = process.env.DB_HOST && !process.env.DB_HOST.includes('localhost');
   const connection = await mysql.createConnection({
     host: process.env.DB_HOST || 'localhost',
     port: Number(process.env.DB_PORT) || 3306,
@@ -11,6 +12,7 @@ const run = async () => {
     password: process.env.DB_PASSWORD || '',
     database: process.env.DB_NAME || 'kibboutz',
     multipleStatements: true,
+    ...(isCloud ? { ssl: { rejectUnauthorized: true } } : {}),
   });
 
   console.log('Connected to MySQL. Creating tables...\n');

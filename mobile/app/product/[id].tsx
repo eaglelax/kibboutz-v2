@@ -43,7 +43,12 @@ export default function ProductDetailScreen() {
       }
     } catch (error) {
       console.error('Error fetching product:', error);
-      Alert.alert('Erreur', 'Impossible de charger le produit');
+      if (Platform.OS === 'web') {
+        window.alert('Impossible de charger le produit');
+      } else {
+        const { Alert } = require('react-native');
+        Alert.alert('Erreur', 'Impossible de charger le produit');
+      }
     } finally {
       setLoading(false);
     }
@@ -58,14 +63,13 @@ export default function ProductDetailScreen() {
 
     const newQuantity = quantity + delta;
     if (newQuantity < product.minQuantity) {
-      Alert.alert(
-        'Quantité minimale',
-        `La quantité minimale est de ${product.minQuantity} ${UNIT_LABELS[product.unit]}`
-      );
+      const msg = `La quantité minimale est de ${product.minQuantity} ${UNIT_LABELS[product.unit]}`;
+      if (Platform.OS === 'web') { window.alert(msg); } else { const { Alert } = require('react-native'); Alert.alert('Quantité minimale', msg); }
       return;
     }
     if (newQuantity > product.stock) {
-      Alert.alert('Stock insuffisant', `Stock disponible: ${product.stock}`);
+      const msg = `Stock disponible: ${product.stock}`;
+      if (Platform.OS === 'web') { window.alert(msg); } else { const { Alert } = require('react-native'); Alert.alert('Stock insuffisant', msg); }
       return;
     }
     setQuantity(newQuantity);
@@ -199,32 +203,15 @@ export default function ProductDetailScreen() {
             )}
           </View>
 
-          {/* Producer Info */}
-          {product.producer && (
-            <View style={styles.producerSection}>
-              <Text style={styles.sectionTitle}>Producteur</Text>
-              <TouchableOpacity style={styles.producerCard}>
-                <View style={styles.producerAvatar}>
-                  <Text style={styles.producerAvatarText}>
-                    {product.producer.firstName?.[0]?.toUpperCase() || 'P'}
-                  </Text>
-                </View>
-                <View style={styles.producerInfo}>
-                  <Text style={styles.producerName}>
-                    {product.producer.profile?.businessName ||
-                     `${product.producer.firstName} ${product.producer.lastName}`}
-                  </Text>
-                  {product.producer.profile?.location && (
-                    <View style={styles.locationRow}>
-                      <Ionicons name="location-outline" size={14} color={COLORS.gray[500]} />
-                      <Text style={styles.producerLocation}>{product.producer.profile.location}</Text>
-                    </View>
-                  )}
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={COLORS.gray[400]} />
-              </TouchableOpacity>
+          {/* Vendu par Kibboutz */}
+          <View style={styles.producerSection}>
+            <View style={[styles.producerCard, { backgroundColor: COLORS.primary[50] }]}>
+              <Ionicons name="checkmark-circle" size={20} color={COLORS.primary[600]} />
+              <Text style={[styles.producerName, { marginLeft: 8, color: COLORS.primary[700] }]}>
+                Vendu par Kibboutz
+              </Text>
             </View>
-          )}
+          </View>
 
           {/* Description */}
           {product.description && (
